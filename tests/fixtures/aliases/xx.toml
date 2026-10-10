@@ -1,0 +1,15 @@
+[country]
+name = "Χώρα (ψευδ.)"
+names = { en = "Pretend Country" }
+
+[whole]
+id = "pretend"
+name = "Όλη"
+names = { en = "All of it" }
+
+[[region]]
+id = "west"
+relations = [500]
+name = "Δύση"
+names = { en = "West" }
+neighbours = []

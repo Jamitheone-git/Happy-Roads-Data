@@ -1,0 +1,7 @@
+# The OSM admin_level each country is divided at for download. A country not
+# listed takes `default`. A country that comes out badly is fixed by one line
+# here, with the reason in the commit message.
+default = 4
+
+[levels]
+gr = 6
