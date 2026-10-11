@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The east half of two_squares.osm, as a neighbouring extract would hold it:
+     its own square whole, the shared camera again, and one station of its own. -->
+<osm version="0.6">
+ <node id="2" lat="0" lon="1"/><node id="3" lat="1" lon="1"/>
+ <node id="5" lat="0" lon="2"/><node id="6" lat="1" lon="2"/>
+ <node id="7" lat="-1" lon="-1"/><node id="8" lat="-1" lon="3"/>
+ <node id="9" lat="2" lon="3"/><node id="19" lat="2" lon="-1"/>
+ <node id="11" lat="0.5" lon="1.5"><tag k="highway" v="speed_camera"/><tag k="maxspeed" v="50"/></node>
+ <node id="14" lat="0.8" lon="1.8"><tag k="amenity" v="fuel"/><tag k="name" v="East Fuel"/></node>
+ <way id="101"><nd ref="2"/><nd ref="3"/></way>
+ <way id="103"><nd ref="2"/><nd ref="5"/><nd ref="6"/><nd ref="3"/></way>
+ <way id="104"><nd ref="7"/><nd ref="8"/><nd ref="9"/><nd ref="19"/><nd ref="7"/></way>
+ <relation id="501"><member type="way" ref="101" role="outer"/><member type="way" ref="103" role="outer"/>
+  <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="name" v="Ανατολή"/></relation>
+ <relation id="900"><member type="way" ref="104" role="outer"/>
+  <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="2"/><tag k="ISO3166-1" v="XX"/><tag k="name" v="Χώρα"/><tag k="name:en" v="Country"/></relation>
+</osm>

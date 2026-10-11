@@ -4,3 +4,4 @@ out/
 *.pbf
 compare.log
 .env
+spike/
