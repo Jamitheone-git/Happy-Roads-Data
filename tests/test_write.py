@@ -60,3 +60,24 @@ def test_the_country_returns_its_index_entry_and_the_index_lists_it(tmp_path):
     write_index(tmp_path, [entry], '2026-10')
     index = json.loads((tmp_path / 'v1/index.json').read_text(encoding='utf-8'))
     assert index == {'version': '2026-10', 'countries': [entry]}
+
+
+def test_a_region_across_the_antimeridian_has_no_bounds(tmp_path):
+    # Its box would run round the globe: every position at its latitude would
+    # seem to be in it, and the picker would offer a map of the whole world.
+    chukotka = Region('xx-1', 'Чукотка', {}, box(-180, 62, 180, 72), None)
+    entry = write_country(tmp_path, CONFIG, [chukotka, REGIONS[0]],
+                          {'xx-1': [], 'xx-500': []}, {'xx-1': [], 'xx-500': []},
+                          '2026-10', 'Χώρα', {})
+    manifest = json.loads((tmp_path / 'v1/xx/manifest.json').read_text(encoding='utf-8'))
+
+    assert 'bounds' not in manifest['regions'][1]
+    # The country's own box is the regions that have one.
+    assert entry['bounds'] == [0.0, 0.0, 1.0, 1.0]
+
+
+def test_a_country_with_no_bounded_region_has_no_bounds_in_the_index(tmp_path):
+    fiji = Region('xx-2', 'Fiji', {}, box(-180, -21, 180, -12), None)
+    entry = write_country(tmp_path, CONFIG, [fiji], {'xx-2': []}, {'xx-2': []},
+                          '2026-10', 'Fiji', {})
+    assert 'bounds' not in entry

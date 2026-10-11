@@ -20,6 +20,11 @@ def region_file(layer, places):
 
 def _bounds(geometry):
     west, south, east, north = geometry.bounds
+    # OSM splits a region across the antimeridian at ±180, so its box runs
+    # round the globe. No box beats that one: every position at its latitude
+    # would seem to be in it, and the picker would offer the whole world's map.
+    if east - west > 180:
+        return None
     return [round(south, 4), round(west, 4), round(north, 4), round(east, 4)]
 
 
@@ -40,21 +45,26 @@ def write_country(out, config, regions, assigned, neighbour_ids, version,
              'names': config.whole_names or country_names,
              'parts': [r.id for r in regions], 'neighborIds': [],
              'fileUrl': config.id, 'version': version}
-    entries = [{'id': r.id, 'name': r.name, 'names': r.names,
-                'neighborIds': neighbour_ids[r.id], 'fileUrl': f'{config.id}/{r.id}',
-                'version': version, 'bounds': _bounds(r.geometry)}
-               for r in regions]
+    entries = []
+    for r in regions:
+        entry = {'id': r.id, 'name': r.name, 'names': r.names,
+                 'neighborIds': neighbour_ids[r.id], 'fileUrl': f'{config.id}/{r.id}',
+                 'version': version}
+        bounds = _bounds(r.geometry)
+        if bounds is not None:
+            entry['bounds'] = bounds
+        entries.append(entry)
     manifest = {'id': config.id, 'name': country_name, 'names': country_names,
                 'regions': [whole, *entries]}
     (base / 'manifest.json').write_text(_json(manifest), encoding='utf-8')
 
-    south = min(e['bounds'][0] for e in entries)
-    west = min(e['bounds'][1] for e in entries)
-    north = max(e['bounds'][2] for e in entries)
-    east = max(e['bounds'][3] for e in entries)
-    return {'id': config.id, 'name': country_name, 'names': country_names,
-            'bounds': [south, west, north, east], 'version': version,
-            'manifest': f'{config.id}/manifest.json'}
+    index_entry = {'id': config.id, 'name': country_name, 'names': country_names,
+                   'version': version, 'manifest': f'{config.id}/manifest.json'}
+    boxes = [e['bounds'] for e in entries if 'bounds' in e]
+    if boxes:
+        index_entry['bounds'] = [min(b[0] for b in boxes), min(b[1] for b in boxes),
+                                 max(b[2] for b in boxes), max(b[3] for b in boxes)]
+    return index_entry
 
 
 def write_index(out, entries, version):
