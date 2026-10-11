@@ -2,7 +2,7 @@
 name = "happyroads-data"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["osmium>=4.0", "shapely>=2.0"]
+dependencies = ["osmium>=4.0", "shapely>=2.0", "boto3>=1.34"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
