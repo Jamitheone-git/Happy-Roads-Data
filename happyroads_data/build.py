@@ -10,7 +10,7 @@ from .config import load_country
 from .extract import read_extract
 from .neighbours import neighbours, overlap_neighbours
 from .poly import read_poly
-from .regions import LANGUAGES, Region, build_regions, country_boundary
+from .regions import LANGUAGES, Region, build_regions, country_boundary, disambiguate
 from .write import write_country, write_index
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -129,6 +129,8 @@ def main(argv=None):
     if not regions:
         raise SystemExit(f'{args.country}: no regions at admin_level {config.level}, '
                          'and no country border to fall back on')
+
+    regions = disambiguate(regions)
 
     # A country whose alias file lists neighbours uses that list for every
     # region. Greece's was checked by hand, and computing it once joined shores

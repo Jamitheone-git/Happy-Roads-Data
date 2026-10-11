@@ -65,3 +65,33 @@ def country_boundary(boundaries, cc):
                 boundary.tags.get('ISO3166-1'), boundary.tags.get('ISO3166-1:alpha2')):
             return boundary
     return None
+
+
+def _shown(region, lang):
+    """The name the app shows a region by in [lang]: RegionManifestEntry.nameFor."""
+    if lang == 'el':
+        return region.names.get('el') or region.name
+    return region.names.get(lang) or region.names.get('en') or region.name
+
+
+def disambiguate(regions):
+    """Regions a language would show by the same name, each told apart by its
+    own name as OSM records it. OSM gives the Republic of Cyprus's Famagusta
+    district and the northern one the same Greek name; two identical rows in
+    the picker say nothing about which is which, and a name of our own choosing
+    would be a statement this app has no business making."""
+    result = list(regions)
+    for lang in LANGUAGES:
+        shown = {}
+        for region in result:
+            shown.setdefault(_shown(region, lang), []).append(region)
+        for name, alike in shown.items():
+            if len(alike) < 2:
+                continue
+            for region in alike:
+                if region.name != name:
+                    i = result.index(region)
+                    result[i] = Region(region.id, region.name,
+                                       {**region.names, lang: f'{name} ({region.name})'},
+                                       region.geometry, region.neighbours)
+    return result

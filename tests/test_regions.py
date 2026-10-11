@@ -5,7 +5,7 @@ from shapely.geometry import box
 
 from happyroads_data.config import Alias, CountryConfig, load_country
 from happyroads_data.extract import Boundary
-from happyroads_data.regions import build_regions, country_boundary
+from happyroads_data.regions import Region, build_regions, country_boundary
 
 FIXTURES = Path(__file__).parent / 'fixtures'
 
@@ -94,3 +94,21 @@ def test_a_country_reads_its_level_and_its_aliases():
 def test_a_country_with_no_file_takes_the_default_level_and_its_code_as_whole_id():
     config = load_country('zz', FIXTURES)
     assert (config.level, config.whole_id, config.aliases) == (4, 'zz', [])
+
+
+def test_two_regions_named_alike_are_told_apart_by_their_own_names():
+    # OSM names the Republic's Famagusta district and the northern one alike
+    # in Greek, which would put two identical rows in the picker. Each is
+    # told apart by its own name as OSM records it, and nothing else is said.
+    from happyroads_data.regions import disambiguate
+    republic = Region('cy-1', 'Επαρχία Αμμοχώστου', {'en': 'Famagusta District'}, box(0, 0, 1, 1), None)
+    north = Region('cy-2', 'Gazimağusa ilçesi',
+                   {'el': 'Επαρχία Αμμοχώστου', 'en': 'Gazimağusa District'}, box(1, 0, 2, 1), None)
+    other = Region('cy-3', 'Επαρχία Λάρνακας', {}, box(2, 0, 3, 1), None)
+
+    republic, north, other = disambiguate([republic, north, other])
+
+    assert north.names['el'] == 'Επαρχία Αμμοχώστου (Gazimağusa ilçesi)'
+    assert republic.names == {'en': 'Famagusta District'}
+    assert north.names['en'] == 'Gazimağusa District'
+    assert other.names == {}
