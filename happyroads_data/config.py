@@ -25,6 +25,9 @@ class CountryConfig:
     whole_names: dict
     country_name: str | None
     country_names: dict = field(default_factory=dict)
+    # Whether levels.toml names this country. One it does not may climb to a
+    # lower level when the default gives it no regions; one it does is held.
+    level_set: bool = False
 
 
 def load_country(cc, root):
@@ -48,4 +51,5 @@ def load_country(cc, root):
         whole_names=whole.get('names', {}),
         country_name=country.get('name'),
         country_names=country.get('names', {}),
+        level_set=cc in levels.get('levels', {}),
     )

@@ -58,3 +58,9 @@ def test_it_prints_a_matrix_for_github_actions(capsys, tmp_path):
     line = capsys.readouterr().out.strip()
     assert line.startswith('matrix=')
     assert [c['country'] for c in json.loads(line[len('matrix='):])] == ['gr', 'us']
+
+
+def test_an_ordinary_country_brings_its_outline_and_name():
+    gr = next(c for c in countries(INDEX, SETTINGS) if c['country'] == 'gr')
+    assert gr['outlines'] == ['https://download.geofabrik.de/europe/greece.poly']
+    assert gr['name'] == 'Greece'

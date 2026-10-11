@@ -5,12 +5,15 @@ from happyroads_data.fetch import fetch
 
 def test_an_ordinary_country_is_its_extracts(tmp_path):
     got = []
-    fetch({'country': 'gr', 'extracts': ['https://x/greece-latest.osm.pbf']},
+    fetch({'country': 'gr', 'name': 'Greece', 'extracts': ['https://x/greece-latest.osm.pbf'],
+           'outlines': ['https://x/greece.poly']},
           tmp_path, download=lambda url, path: got.append((url, path.name)))
 
-    assert got == [('https://x/greece-latest.osm.pbf', 'greece-latest.osm.pbf')]
+    assert got == [('https://x/greece-latest.osm.pbf', 'greece-latest.osm.pbf'),
+                   ('https://x/greece.poly', 'greece.poly')]
     fetched = json.loads((tmp_path / 'fetched.json').read_text(encoding='utf-8'))
-    assert fetched == {'extracts': [str(tmp_path / 'greece-latest.osm.pbf')], 'parts': []}
+    assert fetched == {'name': 'Greece', 'extracts': [str(tmp_path / 'greece-latest.osm.pbf')],
+                       'outlines': [str(tmp_path / 'greece.poly')], 'parts': []}
 
 
 def test_a_split_country_brings_each_parts_outline_with_it(tmp_path):

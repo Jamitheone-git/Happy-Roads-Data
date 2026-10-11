@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- two_squares.osm with one station 0.2 degrees (about 22 km) east of the east
+     square: inside the country, outside every region, as a place is when its
+     region's border cannot be closed. -->
+<osm version="0.6">
+ <node id="1" lat="0" lon="0"/><node id="2" lat="0" lon="1"/>
+ <node id="3" lat="1" lon="1"/><node id="4" lat="1" lon="0"/>
+ <node id="5" lat="0" lon="2"/><node id="6" lat="1" lon="2"/>
+ <node id="7" lat="-1" lon="-1"/><node id="8" lat="-1" lon="3"/>
+ <node id="9" lat="2" lon="3"/><node id="19" lat="2" lon="-1"/>
+ <node id="10" lat="0.5" lon="0.5"><tag k="amenity" v="fuel"/><tag k="name" v="West Fuel"/><tag k="fuel:diesel" v="yes"/></node>
+ <node id="11" lat="0.5" lon="1.5"><tag k="highway" v="speed_camera"/><tag k="maxspeed" v="50"/></node>
+ <node id="12" lat="5" lon="5"><tag k="amenity" v="fuel"/></node>
+ <node id="15" lat="0.5" lon="2.2"><tag k="amenity" v="fuel"/><tag k="name" v="Near Fuel"/></node>
+ <node id="13" lat="0.5" lon="0.5"><tag k="amenity" v="cafe"/></node>
+ <node id="20" lat="0.2" lon="1.2"/><node id="21" lat="0.2" lon="1.4"/><node id="22" lat="0.4" lon="1.4"/>
+ <node id="30" lat="0.7" lon="0.1"/><node id="31" lat="0.7" lon="0.3"/>
+ <way id="100"><nd ref="1"/><nd ref="2"/></way>
+ <way id="101"><nd ref="2"/><nd ref="3"/></way>
+ <way id="102"><nd ref="3"/><nd ref="4"/><nd ref="1"/></way>
+ <way id="103"><nd ref="2"/><nd ref="5"/><nd ref="6"/><nd ref="3"/></way>
+ <way id="104"><nd ref="7"/><nd ref="8"/><nd ref="9"/><nd ref="19"/><nd ref="7"/></way>
+ <way id="110"><nd ref="20"/><nd ref="21"/><nd ref="22"/><nd ref="20"/><tag k="amenity" v="parking"/><tag k="fee" v="yes"/></way>
+ <way id="111"><nd ref="30"/><nd ref="31"/><tag k="barrier" v="toll_booth"/></way>
+ <relation id="500"><member type="way" ref="100" role="outer"/><member type="way" ref="101" role="outer"/><member type="way" ref="102" role="outer"/>
+  <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="ISO3166-2" v="XX-W"/><tag k="name" v="Δύση"/><tag k="name:el" v="Δύση"/><tag k="name:en" v="West"/></relation>
+ <relation id="501"><member type="way" ref="101" role="outer"/><member type="way" ref="103" role="outer"/>
+  <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="name" v="Ανατολή"/></relation>
+ <relation id="900"><member type="way" ref="104" role="outer"/>
+  <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="2"/><tag k="ISO3166-1" v="XX"/><tag k="name" v="Χώρα"/><tag k="name:en" v="Country"/></relation>
+</osm>

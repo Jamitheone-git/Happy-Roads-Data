@@ -1,6 +1,7 @@
 """Build one country: python -m happyroads_data.build --country gr ..."""
 
 import argparse
+import dataclasses
 import json
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -8,9 +9,13 @@ from pathlib import Path
 from .assign import assign
 from .config import load_country
 from .extract import read_extract
-from .neighbours import neighbours, overlap_neighbours
+from .neighbours import km_length, neighbours, overlap_neighbours
 from .poly import read_poly
-from .regions import LANGUAGES, Region, build_regions, country_boundary, disambiguate
+from shapely import STRtree
+from shapely.geometry import LineString, Point
+from shapely.ops import nearest_points, unary_union
+from .regions import (LANGUAGES, Region, build_regions, country_boundary, disambiguate,
+                      regions_at)
 from .write import write_country, write_index
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -87,6 +92,53 @@ def _read_parts(country, parts, jobs=1):
     return list(boundaries.values()), places, regions, sources
 
 
+# How far outside every region a place may be and still go to the nearest:
+# far enough to catch a region whose border could not be closed, not so far
+# that a wrongly levelled country empties into whatever region it has.
+NEAREST_KM = 50
+
+# The levels a country levels.toml does not name tries after its default, and
+# how many regions make a level worth taking.
+LADDER = (5, 6, 7, 8)
+FEWEST, MOST = 2, 150
+
+
+def _regions_climbing(boundaries, config):
+    """The regions at the country's level, or, for a country levels.toml does
+    not name and whose default gives fewer than two, at the first lower level
+    giving two to 150. Hungary, Ireland and the Baltic states have their
+    counties below level 4. Returns the regions and the level they are at."""
+    if isinstance(config.level, list):
+        return regions_at(boundaries, config, config.level), config.level
+    regions = build_regions(boundaries, config)
+    if config.level_set or len(regions) >= FEWEST:
+        return regions, config.level
+    for level in LADDER:
+        tried = build_regions(boundaries, dataclasses.replace(config, level=level))
+        if FEWEST <= len(tried) <= MOST:
+            return tried, level
+    return regions, config.level
+
+
+def _place_the_rest(assigned, places, regions, inside):
+    """Places that fell in no region but lie [inside] the country go to the
+    nearest region within NEAREST_KM. A region whose border could not be
+    closed is missing, and its places would otherwise be lost; next door,
+    a driver downloading the neighbour still finds them."""
+    placed = {id(place) for found in assigned.values() for place in found}
+    tree = STRtree([region.geometry for region in regions])
+    for place in places:
+        if id(place) in placed:
+            continue
+        point = Point(place.lon, place.lat)
+        if not inside(point):
+            continue
+        region = regions[int(tree.nearest(point))]
+        near, _ = nearest_points(region.geometry, point)
+        if km_length(LineString([point, near])) <= NEAREST_KM:
+            assigned[region.id].append(place)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--country', required=True)
@@ -115,8 +167,10 @@ def main(argv=None):
         if not fetched['extracts']:
             raise SystemExit('give --extract or --fetched')
         boundaries, places = _read_all(fetched['extracts'], args.jobs)
-        regions = build_regions(boundaries, config)
+        regions, level = _regions_climbing(boundaries, config)
+        print(f'{args.country}: level {level}')
     osm_country = country_boundary(boundaries, args.country)
+    geofabrik_name = fetched.get('name')
     if not regions and osm_country is not None:
         # Malta or Monaco has nothing at level 4. The whole country is then
         # its one region, rather than a failed build and no places at all.
@@ -126,6 +180,14 @@ def main(argv=None):
                           {lang: tags[f'name:{lang}'] for lang in LANGUAGES
                            if f'name:{lang}' in tags},
                           osm_country.geometry, None)]
+    outlines = fetched.get('outlines') or []
+    if not regions and outlines:
+        # Antarctica or New Caledonia: no regions and no border OSM tags as a
+        # country. The outline Geofabrik cut the file with is the one region.
+        regions = [Region(f'{args.country}-all',
+                          config.country_name or geofabrik_name or args.country.upper(), {},
+                          unary_union([read_poly(Path(o).read_text(encoding='utf-8'))
+                                       for o in outlines]), None)]
     if not regions:
         raise SystemExit(f'{args.country}: no regions at admin_level {config.level}, '
                          'and no country border to fall back on')
@@ -143,9 +205,16 @@ def main(argv=None):
         neighbour_ids = neighbours(regions)
 
     osm_tags = osm_country.tags if osm_country else {}
-    name = config.country_name or osm_tags.get('name', args.country.upper())
+    name = config.country_name or osm_tags.get('name') or geofabrik_name or args.country.upper()
     names = config.country_names or {lang: osm_tags[f'name:{lang}'] for lang in LANGUAGES
                                      if f'name:{lang}' in osm_tags}
+
+    # A place outside the country's own border, in a file shared with its
+    # neighbours, is the neighbour's: neither placed here nor counted lost.
+    if osm_country is not None:
+        inside = osm_country.geometry.covers
+    else:
+        inside = lambda point: True  # noqa: E731
 
     assigned = assign(places, regions)
     if sources is not None:
@@ -153,9 +222,14 @@ def main(argv=None):
         for place, source in zip(places, sources):
             if id(place) not in placed:
                 assigned[source.id].append(place)
-    dropped = len(places) - sum(len(found) for found in assigned.values())
-    share = round(100 * dropped / len(places)) if places else 0
-    print(f'{args.country}: dropped {dropped} of {len(places)} places ({share}%)')
+    _place_the_rest(assigned, places, regions, inside)
+
+    placed = {id(place) for found in assigned.values() for place in found}
+    ours = [place for place in places
+            if id(place) in placed or inside(Point(place.lon, place.lat))]
+    dropped = sum(1 for place in ours if id(place) not in placed)
+    share = round(100 * dropped / len(ours)) if ours else 0
+    print(f'{args.country}: dropped {dropped} of {len(ours)} places ({share}%)')
     if share > 5:
         print(f'::warning::{args.country}: {share}% of places fell in no region')
 

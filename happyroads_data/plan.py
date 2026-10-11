@@ -46,9 +46,14 @@ def countries(index, settings, only=None):
             result.append({'country': code, 'extracts': [], 'parts': parts})
             continue
 
-        extract = _extract_for(code, claims[code], settled)
-        if extract is not None:
-            result.append({'country': code, 'extracts': [extract]})
+        feature = _extract_for(code, claims[code], settled)
+        if feature is not None:
+            pbf = feature['urls']['pbf']
+            result.append({'country': code, 'name': feature.get('name', code.upper()),
+                           'extracts': [pbf],
+                           # For a country with neither regions nor a border
+                           # OSM tags as a country, as Antarctica has.
+                           'outlines': [pbf.replace('-latest.osm.pbf', '.poly')]})
     return result
 
 
@@ -58,7 +63,7 @@ def _extract_for(code, claimants, settled):
     Geofabrik tags some Pacific territories with their neighbours' codes, and
     a wrong guess would publish one island's places as another's."""
     if code in settled:
-        return next(f['urls']['pbf'] for f in claimants if f['id'] == settled[code])
+        return next(f for f in claimants if f['id'] == settled[code])
 
     fewest = min(len(f['iso3166-1:alpha2']) for f in claimants)
     best = [f for f in claimants if len(f['iso3166-1:alpha2']) == fewest]
@@ -67,7 +72,7 @@ def _extract_for(code, claimants, settled):
         print(f'::warning::{code}: claimed by {names}; settle it in geofabrik.toml',
               file=sys.stderr)
         return None
-    return best[0]['urls']['pbf']
+    return best[0]
 
 
 def main(argv=None):

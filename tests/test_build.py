@@ -42,8 +42,8 @@ def test_without_an_alias_list_neighbours_are_computed(tmp_path):
     assert manifest['names'] == {'en': 'Country'}
 
 
-def _layer(out, region, layer):
-    path = out / f'v1/xx/{region}/{layer}.json.gz'
+def _layer(out, region, layer, country='xx'):
+    path = out / f'v1/{country}/{region}/{layer}.json.gz'
     return json.loads(gzip.decompress(path.read_bytes()))[layer]
 
 
@@ -80,7 +80,7 @@ def test_a_country_with_nothing_at_its_level_is_one_region(tmp_path):
 def test_with_neither_regions_nor_a_country_border_the_build_says_which_country(tmp_path):
     root = tmp_path / 'root'
     (root / 'aliases').mkdir(parents=True)
-    (root / 'levels.toml').write_text('default = 8\n', encoding='utf-8')
+    (root / 'levels.toml').write_text('default = 8\n[levels]\nyy = 8\n', encoding='utf-8')
     with pytest.raises(SystemExit, match='yy'):
         main(['--country', 'yy', '--extract', str(FIXTURES / 'two_squares.osm'),
               '--out', str(tmp_path / 'out'), '--version', '2026-10', '--root', str(root)])
@@ -151,5 +151,54 @@ def test_the_build_says_how_many_places_found_no_region(tmp_path, capsys):
     # country whose places mostly fall outside its regions is visibly wrong.
     main(['--country', 'xx', '--extract', str(FIXTURES / 'two_squares.osm'),
           '--out', str(tmp_path), '--version', '2026-10', '--root', str(FIXTURES)])
-    # Of five places, one (at 5, 5) lies outside both squares.
-    assert 'dropped 1 of 5 places (20%)' in capsys.readouterr().out
+    # The station at (5, 5) is outside the country's border too: in a shared
+    # extract it is a neighbour's, not lost, and is not counted.
+    assert 'dropped 0 of 4 places (0%)' in capsys.readouterr().out
+
+
+def _bare_root(tmp_path, levels='default = 4\n'):
+    root = tmp_path / 'root'
+    (root / 'aliases').mkdir(parents=True)
+    (root / 'levels.toml').write_text(levels, encoding='utf-8')
+    return root
+
+
+def test_a_place_just_outside_every_region_goes_to_the_nearest(tmp_path, capsys):
+    # A region whose border cannot be closed is missing, and its places would
+    # be lost; within 50 km of another region of the same country they go
+    # there instead, where a driver downloading the neighbour finds them.
+    main(['--country', 'xx', '--extract', str(FIXTURES / 'near_miss.osm'),
+          '--out', str(tmp_path / 'out'), '--version', '2026-10',
+          '--root', str(_bare_root(tmp_path, 'default = 4\n[levels]\nxx = 6\n'))])
+    names = [p[2] for p in _layer(tmp_path / 'out', 'xx-501', 'fuel')]
+    assert names == ['Near Fuel']
+    assert 'dropped 0 of 5 places (0%)' in capsys.readouterr().out
+
+
+def test_a_country_with_no_level_of_its_own_climbs_until_it_has_regions(tmp_path, capsys):
+    # Hungary, Ireland and the Baltic states have nothing at level 4 but their
+    # counties lower down. A country levels.toml does not name tries 5, 6, 7
+    # and 8 in turn, and takes the first giving two to 150 regions.
+    main(['--country', 'xx', '--extract', str(FIXTURES / 'two_squares.osm'),
+          '--out', str(tmp_path / 'out'), '--version', '2026-10',
+          '--root', str(_bare_root(tmp_path))])
+    manifest = json.loads((tmp_path / 'out/v1/xx/manifest.json').read_text(encoding='utf-8'))
+    assert [r['id'] for r in manifest['regions']] == ['xx', 'xx-500', 'xx-501']
+    assert 'xx: level 6' in capsys.readouterr().out
+
+
+def test_a_country_with_neither_regions_nor_border_is_its_extracts_outline(tmp_path):
+    # Antarctica and New Caledonia have no border OSM tags as a country. The
+    # outline Geofabrik cut the file with is then the one region, named as
+    # Geofabrik names the country.
+    fetched = tmp_path / 'fetched.json'
+    fetched.write_text(json.dumps({
+        'name': 'Yonder', 'extracts': [str(FIXTURES / 'two_squares.osm')],
+        'outlines': [str(FIXTURES / 'west.poly')], 'parts': []}), encoding='utf-8')
+    main(['--country', 'yy', '--fetched', str(fetched),
+          '--out', str(tmp_path / 'out'), '--version', '2026-10',
+          '--root', str(_bare_root(tmp_path, 'default = 9\n[levels]\nyy = 9\n'))])
+    manifest = json.loads((tmp_path / 'out/v1/yy/manifest.json').read_text(encoding='utf-8'))
+    assert manifest['name'] == 'Yonder'
+    assert [(r['id'], r['name']) for r in manifest['regions'][1:]] == [('yy-all', 'Yonder')]
+    assert [p[2] for p in _layer(tmp_path / 'out', 'yy-all', 'fuel', 'yy')] == ['West Fuel']

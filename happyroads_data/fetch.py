@@ -24,7 +24,9 @@ def fetch(entry, folder, download=_curl):
         return str(path)
 
     fetched = {
+        'name': entry.get('name'),
         'extracts': [get(url) for url in entry.get('extracts', [])],
+        'outlines': [get(url) for url in entry.get('outlines', [])],
         'parts': [{'id': part['id'], 'name': part['name'], 'code': part.get('code'),
                    'pbf': get(part['pbf']), 'poly': get(part['poly'])}
                   for part in entry.get('parts', [])],

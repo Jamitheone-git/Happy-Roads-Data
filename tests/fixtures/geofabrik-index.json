@@ -11,7 +11,8 @@
     ],
     "urls": {
      "pbf": "https://download.geofabrik.de/europe/greece-latest.osm.pbf"
-    }
+    },
+    "name": "Greece"
    }
   },
   {

@@ -112,3 +112,15 @@ def test_two_regions_named_alike_are_told_apart_by_their_own_names():
     assert republic.names == {'en': 'Famagusta District'}
     assert north.names['en'] == 'Gazimağusa District'
     assert other.names == {}
+
+
+def test_several_levels_add_only_what_the_earlier_ones_leave_uncovered():
+    # Portugal's districts are at level 6, and Azores and Madeira only at
+    # level 4, beside a level-4 mainland that would swallow the districts.
+    # pt = [6, 4] takes the districts, then the islands, and not the mainland.
+    from happyroads_data.regions import regions_at
+    island = _boundary(502, 4, 2, name='Νησί')
+    mainland = Boundary(503, {'admin_level': '4', 'boundary': 'administrative', 'name': 'Ηπειρωτική'},
+                        box(0, 0, 2, 1))
+    regions = regions_at([*BOUNDARIES[:2], island, mainland, COUNTRY], _config(), [6, 4])
+    assert [r.id for r in regions] == ['xx-500', 'xx-501', 'xx-502']

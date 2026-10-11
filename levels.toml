@@ -1,6 +1,7 @@
 # The OSM admin_level each country is divided at for download. A country not
 # listed takes `default`. A country that comes out badly is fixed by one line
-# here, with the reason in the commit message.
+# here, with the reason in the commit message. A list of levels takes the
+# first, then whatever each later one adds that the earlier left uncovered.
 default = 4
 
 [levels]
@@ -10,3 +11,7 @@ gr = 6
 # for a picker; level 5 is the districts (Nicosia, Limassol, Larnaca, Paphos,
 # Famagusta, and those OSM maps in the north), eleven in all.
 cy = 5
+# Portugal's level 4 is only Azores and Madeira, so at the default 94% of its
+# places fell in no region. Its eighteen districts are at level 6; the islands
+# are then added from level 4.
+pt = [6, 4]

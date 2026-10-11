@@ -1,6 +1,7 @@
 """Borders into the regions a driver downloads, each with an id that must not
 change from one month's build to the next."""
 
+import dataclasses
 from dataclasses import dataclass
 
 from shapely.ops import unary_union
@@ -95,3 +96,20 @@ def disambiguate(regions):
                                        {**region.names, lang: f'{name} ({region.name})'},
                                        region.geometry, region.neighbours)
     return result
+
+
+def regions_at(boundaries, config, levels):
+    """The regions at the first of [levels], then those at each later level
+    that no region already taken covers. Portugal's districts are at level 6,
+    and Azores and Madeira only at level 4, beside a level-4 mainland that
+    would swallow the districts; levels [6, 4] take the districts and the
+    islands, and leave the mainland out."""
+    chosen = []
+    for level in levels:
+        for region in build_regions(boundaries, dataclasses.replace(config, level=level)):
+            if any(c.id == region.id for c in chosen):
+                continue
+            point = region.geometry.representative_point()
+            if not any(c.geometry.covers(point) for c in chosen):
+                chosen.append(region)
+    return sorted(chosen, key=lambda r: r.id)
