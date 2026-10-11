@@ -1,7 +1,7 @@
 import gzip
 import hashlib
 
-from happyroads_data.upload import headers_for, load_env, plan, upload
+from happyroads_data.upload import credentials, headers_for, load_env, plan, upload
 
 
 class FakeBucket:
@@ -71,3 +71,36 @@ def test_the_credentials_are_read_from_a_dotenv_file(tmp_path):
                    encoding='utf-8')
     assert load_env(env) == {'R2_BUCKET': 'happy-roads-data',
                              'R2_ENDPOINT': 'https://x.r2.cloudflarestorage.com'}
+
+
+def _two_countries(tmp_path):
+    out = _tree(tmp_path)
+    (out / 'v1/at/tirol').mkdir(parents=True)
+    (out / 'v1/at/tirol/fuel.json.gz').write_bytes(gzip.compress(b'{"fuel":[]}', mtime=0))
+    (out / 'v1/at/manifest.json').write_text('{}', encoding='utf-8')
+    return out
+
+
+def test_one_country_is_sent_without_the_index_or_any_other_country(tmp_path):
+    # A monthly run builds each country in a job of its own, and the index is
+    # written once, last, by a job that knows which countries succeeded.
+    keys = [key for key, _ in plan(_two_countries(tmp_path), country='gr')]
+    assert keys == ['v1/gr/achaia/fuel.json.gz', 'v1/gr/manifest.json']
+
+
+def test_the_index_alone_is_sent_on_its_own(tmp_path):
+    keys = [key for key, _ in plan(_two_countries(tmp_path), index_only=True)]
+    assert keys == ['v1/index.json']
+
+
+def test_with_no_dotenv_the_credentials_come_from_the_environment(tmp_path, monkeypatch):
+    # On GitHub Actions they are secrets handed to the step, never a file.
+    monkeypatch.setenv('R2_BUCKET', 'from-the-environment')
+    assert credentials(tmp_path / 'missing.env')['R2_BUCKET'] == 'from-the-environment'
+
+
+def test_a_dotenv_wins_when_there_is_one(tmp_path, monkeypatch):
+    monkeypatch.setenv('R2_BUCKET', 'from-the-environment')
+    env = tmp_path / '.env'
+    env.write_text('R2_BUCKET=from-the-file\n', encoding='utf-8')
+    assert credentials(env)['R2_BUCKET'] == 'from-the-file'

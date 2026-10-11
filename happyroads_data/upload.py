@@ -3,6 +3,7 @@ python -m happyroads_data.upload --out out"""
 
 import argparse
 import hashlib
+import os
 from pathlib import Path
 
 import boto3
@@ -29,13 +30,22 @@ def headers_for(key):
     return headers
 
 
-def plan(out):
+def plan(out, country=None, index_only=False):
     """Every file under v1/, in the order it is safe to publish: the region
     files, then the manifests that name them, then the index that names the
     manifests. A phone reading mid-upload never follows a name to a file that
-    is not there yet."""
+    is not there yet.
+
+    [country] narrows it to that country's folder, and [index_only] to the
+    index. A monthly run builds each country in a job of its own, and only
+    the last job, which knows which countries succeeded, writes the index."""
     v1 = Path(out) / 'v1'
-    files = [p for p in v1.rglob('*') if p.is_file()]
+    if index_only:
+        files = [v1 / 'index.json']
+    elif country is not None:
+        files = [p for p in (v1 / country).rglob('*') if p.is_file()]
+    else:
+        files = [p for p in v1.rglob('*') if p.is_file()]
 
     def rank(path):
         if path.name == 'index.json' and path.parent == v1:
@@ -57,9 +67,9 @@ def _unchanged(client, bucket, key, body):
     return etag == hashlib.md5(body).hexdigest()
 
 
-def upload(out, client, bucket):
+def upload(out, client, bucket, country=None, index_only=False):
     sent = 0
-    for key, path in plan(Path(out)):
+    for key, path in plan(Path(out), country=country, index_only=index_only):
         body = path.read_bytes()
         if _unchanged(client, bucket, key, body):
             continue
@@ -78,13 +88,27 @@ def load_env(path):
     return values
 
 
+_CREDENTIALS = ('R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_ENDPOINT', 'R2_BUCKET')
+
+
+def credentials(env_path):
+    """The R2 credentials: the maintainer's .env when there is one, otherwise
+    the environment, which is where GitHub Actions hands its secrets to a
+    step. Never a file there."""
+    if Path(env_path).exists():
+        return load_env(env_path)
+    return {name: os.environ[name] for name in _CREDENTIALS if name in os.environ}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--out', required=True)
     parser.add_argument('--env', default=str(_ROOT / '.env'))
+    parser.add_argument('--country')
+    parser.add_argument('--index', action='store_true')
     args = parser.parse_args(argv)
 
-    env = load_env(args.env)
+    env = credentials(args.env)
     client = boto3.client(
         's3',
         endpoint_url=env['R2_ENDPOINT'],
@@ -92,8 +116,9 @@ def main(argv=None):
         aws_secret_access_key=env['R2_SECRET_ACCESS_KEY'],
         region_name='auto',
     )
-    total = len(plan(Path(args.out)))
-    sent = upload(Path(args.out), client, env['R2_BUCKET'])
+    total = len(plan(Path(args.out), country=args.country, index_only=args.index))
+    sent = upload(Path(args.out), client, env['R2_BUCKET'],
+                  country=args.country, index_only=args.index)
     print(f'{sent} of {total} files sent, {total - sent} unchanged')
 
 
