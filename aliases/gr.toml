@@ -3,7 +3,7 @@
 
 [country]
 name = "Ελλάδα"
-names = { en = "Greece" }
+names = { el = "Ελλάδα", en = "Greece" }
 
 [whole]
 id = "greece"

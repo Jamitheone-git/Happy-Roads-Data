@@ -11,6 +11,9 @@ def test_greece_keeps_every_id_the_app_shipped():
     assert config.whole_id == 'greece'
     assert len(config.aliases) == 70
     assert config.country_name == 'Ελλάδα'
+    # The app names a country by language and falls back to English, so the
+    # Greek name has to be written out for the Greek app to say Ελλάδα.
+    assert config.country_names == {'el': 'Ελλάδα', 'en': 'Greece'}
 
 
 def test_athens_is_still_the_five_sectors_and_piraeus_as_one():
