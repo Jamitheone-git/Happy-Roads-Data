@@ -15,3 +15,7 @@ cy = 5
 # places fell in no region. Its eighteen districts are at level 6; the islands
 # are then added from level 4.
 pt = [6, 4]
+# Slovenia has nothing at levels 4 to 6 that closes: of its 58 administrative
+# units at level 7 only eleven do, and its 212 municipalities at level 8 are
+# too many for a picker. It is small enough to be one region.
+si = 2
