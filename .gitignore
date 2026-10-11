@@ -3,3 +3,4 @@ __pycache__/
 out/
 *.pbf
 compare.log
+.env
