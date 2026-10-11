@@ -83,7 +83,9 @@ jobs:
         run: |
           args=()
           for f in extracts/*.pbf; do args+=(--extract "$f"); done
-          python -m happyroads_data.build --country "$COUNTRY" "${args[@]}" --out out --version "$VERSION"
+          # Four at once: a runner has four cores, and the United States is
+          # fifty-three files that took nearly the time limit one by one.
+          python -m happyroads_data.build --country "$COUNTRY" "${args[@]}" --jobs 4 --out out --version "$VERSION"
           rm -rf extracts
 
       - name: Upload the country

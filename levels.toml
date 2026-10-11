@@ -5,3 +5,8 @@ default = 4
 
 [levels]
 gr = 6
+# Cyprus has nothing at level 4 and came out as one region. Level 6 is the
+# fifty municipalities and community clusters of the 2024 reform, too fine
+# for a picker; level 5 is the districts (Nicosia, Limassol, Larnaca, Paphos,
+# Famagusta, and those OSM maps in the north), eleven in all.
+cy = 5

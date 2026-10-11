@@ -84,3 +84,21 @@ def test_with_neither_regions_nor_a_country_border_the_build_says_which_country(
     with pytest.raises(SystemExit, match='yy'):
         main(['--country', 'yy', '--extract', str(FIXTURES / 'two_squares.osm'),
               '--out', str(tmp_path / 'out'), '--version', '2026-10', '--root', str(root)])
+
+
+def test_extracts_read_side_by_side_give_the_same_country(tmp_path):
+    # The United States is fifty-three files; a runner has four cores, and
+    # reading them one at a time came close to the job's time limit.
+    def build(out, *jobs):
+        main(['--country', 'xx',
+              '--extract', str(FIXTURES / 'two_squares.osm'),
+              '--extract', str(FIXTURES / 'east_square.osm'),
+              '--out', str(out), '--version', '2026-10', '--root', str(FIXTURES), *jobs])
+
+    build(tmp_path / 'one')
+    build(tmp_path / 'two', '--jobs', '2')
+
+    files = sorted(p.relative_to(tmp_path / 'one') for p in (tmp_path / 'one').rglob('*') if p.is_file())
+    assert files
+    for path in files:
+        assert (tmp_path / 'one' / path).read_bytes() == (tmp_path / 'two' / path).read_bytes(), path
