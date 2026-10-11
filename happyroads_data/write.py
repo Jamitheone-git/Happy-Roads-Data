@@ -33,9 +33,13 @@ def write_country(out, config, regions, assigned, neighbour_ids, version,
             places = [p for p in assigned[region.id] if p.layer == layer]
             (folder / f'{layer}.json.gz').write_bytes(region_file(layer, places))
 
+    # The whole country has no files of its own: its parts are its places.
+    # Naming the country's folder is enough for the app to find each part at
+    # <folder>/<partId>, by the same layout every region already follows.
     whole = {'id': config.whole_id, 'name': config.whole_name or country_name,
              'names': config.whole_names or country_names,
-             'parts': [r.id for r in regions], 'neighborIds': [], 'version': version}
+             'parts': [r.id for r in regions], 'neighborIds': [],
+             'fileUrl': config.id, 'version': version}
     entries = [{'id': r.id, 'name': r.name, 'names': r.names,
                 'neighborIds': neighbour_ids[r.id], 'fileUrl': f'{config.id}/{r.id}',
                 'version': version, 'bounds': _bounds(r.geometry)}

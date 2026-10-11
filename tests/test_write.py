@@ -43,7 +43,8 @@ def test_the_manifest_holds_the_regions_and_the_whole_country(tmp_path):
     assert manifest['name'] == 'Χώρα'
     whole, west, east = manifest['regions']
     assert whole == {'id': 'pretend', 'name': 'Όλη', 'names': {'en': 'All of it'},
-                     'parts': ['xx-500', 'xx-501'], 'neighborIds': [], 'version': '2026-10'}
+                     'parts': ['xx-500', 'xx-501'], 'neighborIds': [],
+                     'fileUrl': 'xx', 'version': '2026-10'}
     assert west == {'id': 'xx-500', 'name': 'Δύση', 'names': {'en': 'West'},
                     'neighborIds': ['xx-501'], 'fileUrl': 'xx/xx-500', 'version': '2026-10',
                     'bounds': [0.0, 0.0, 1.0, 1.0]}
