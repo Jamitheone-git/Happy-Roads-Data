@@ -1,0 +1,13 @@
+{"type": "FeatureCollection", "features": [
+ {"type": "Feature", "properties": {"id": "greece", "parent": "europe", "iso3166-1:alpha2": ["GR"], "urls": {"pbf": "https://download.geofabrik.de/europe/greece-latest.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "israel-and-palestine", "parent": "asia", "iso3166-1:alpha2": ["PS", "IL"], "urls": {"pbf": "https://download.geofabrik.de/asia/israel-and-palestine-latest.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "us", "parent": "north-america", "iso3166-1:alpha2": ["US"], "urls": {"pbf": "https://download.geofabrik.de/north-america/us-latest.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "us/alabama", "parent": "north-america", "iso3166-2": ["US-AL"], "urls": {"pbf": "https://download.geofabrik.de/north-america/us/alabama-latest.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "us/alaska", "parent": "north-america", "iso3166-2": ["US-AK"], "urls": {"pbf": "https://download.geofabrik.de/north-america/us/alaska-latest.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "germany/bayern", "parent": "germany", "iso3166-2": ["DE-BY"], "urls": {"pbf": "https://download.geofabrik.de/europe/germany/bayern-latest.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "vanuatu", "parent": "australia-oceania", "iso3166-1:alpha2": ["VU"], "urls": {"pbf": "https://download.geofabrik.de/australia-oceania/vanuatu-latest.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "tokelau", "parent": "australia-oceania", "iso3166-1:alpha2": ["VU"], "urls": {"pbf": "https://download.geofabrik.de/australia-oceania/tokelau-latest.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "somewhere-a", "parent": "x", "iso3166-1:alpha2": ["QQ"], "urls": {"pbf": "https://example.com/a.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "somewhere-b", "parent": "x", "iso3166-1:alpha2": ["QQ"], "urls": {"pbf": "https://example.com/b.osm.pbf"}}},
+ {"type": "Feature", "properties": {"id": "europe", "urls": {"pbf": "https://download.geofabrik.de/europe-latest.osm.pbf"}}}
+]}

@@ -1,0 +1,15 @@
+# How each country is fetched from Geofabrik's index (index-v1-nogeom.json).
+
+# Countries too big for one runner as one file, built from their own
+# subdivisions' files instead (those whose iso3166-2 code starts with it).
+# The United States is about 11 GB as one file; its states are each well
+# within a runner's 16 GB.
+split = ["us"]
+
+# Codes that several extracts claim, and the extract that is the country.
+# Geofabrik tags a handful of Pacific territories with their neighbours'
+# codes; a new ambiguity is reported and that country skipped until it is
+# settled here.
+[extract]
+vu = "vanuatu"
+mh = "marshall-islands"
