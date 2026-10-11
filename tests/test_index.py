@@ -32,3 +32,29 @@ def test_entries_are_read_from_each_jobs_own_index(tmp_path):
             json.dumps({'version': '2026-10', 'countries': [_entry(code, '2026-10')]}),
             encoding='utf-8')
     assert sorted(e['id'] for e in read_entries(tmp_path)) == ['at', 'gr']
+
+
+def test_the_published_index_is_asked_for_by_name(monkeypatch):
+    # Cloudflare answers 403 to Python's default "Python-urllib" agent, taking
+    # it for a bot; found by rehearsing the workflow before it ever ran.
+    from happyroads_data import index
+
+    seen = {}
+
+    class Answer:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return b'{"version": "2026-09", "countries": []}'
+
+    def fake_urlopen(request, timeout):
+        seen['agent'] = request.get_header('User-agent')
+        return Answer()
+
+    monkeypatch.setattr(index.urllib.request, 'urlopen', fake_urlopen)
+    assert index._fetch_published('https://example.com/v1/index.json')['version'] == '2026-09'
+    assert seen['agent'].startswith('HappyRoads')

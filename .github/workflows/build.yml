@@ -1,0 +1,131 @@
+name: Build place data
+
+# Monthly, and by hand. Never on a pull request: a fork's workflow must never
+# run where the R2 secrets are.
+on:
+  schedule:
+    # 03:00 UTC on the 3rd: Geofabrik's extracts are rebuilt daily, and the
+    # start of a month is when the app's "version" changes anyway.
+    - cron: '0 3 3 * *'
+  workflow_dispatch:
+    inputs:
+      countries:
+        description: 'Comma-separated ISO codes (e.g. gr,cy,at). Empty builds every country.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# Two runs at once would race to write the index.
+concurrency:
+  group: build-place-data
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: version
+        run: echo "version=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+      - id: plan
+        # The input reaches the script as an environment variable, never
+        # pasted into it, so nothing typed there can become a command.
+        env:
+          ONLY: ${{ inputs.countries }}
+        run: python -m happyroads_data.plan --only "$ONLY" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      # One country failing must not stop the others; it keeps last month's
+      # data, which the index job sees to.
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install osmium shapely boto3
+
+      # The United States arrives as fifty-three files, about 11 GB together,
+      # which does not fit beside the runner's preinstalled toolchains.
+      - if: ${{ matrix.country == 'us' }}
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - name: Download extracts
+        env:
+          EXTRACTS: ${{ toJSON(matrix.extracts) }}
+        run: |
+          mkdir -p extracts
+          echo "$EXTRACTS" | jq -r '.[]' | while read -r url; do
+            curl -fsSL --retry 3 -o "extracts/$(basename "$url")" "$url"
+          done
+          du -sh extracts
+
+      - name: Build
+        env:
+          COUNTRY: ${{ matrix.country }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          args=()
+          for f in extracts/*.pbf; do args+=(--extract "$f"); done
+          python -m happyroads_data.build --country "$COUNTRY" "${args[@]}" --out out --version "$VERSION"
+          rm -rf extracts
+
+      - name: Upload the country
+        env:
+          COUNTRY: ${{ matrix.country }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: python -m happyroads_data.upload --out out --country "$COUNTRY"
+
+      # This country's entry for the index, which only the last job writes.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: entry-${{ matrix.country }}
+          path: out/v1/index.json
+          retention-days: 7
+
+  index:
+    needs: [plan, build]
+    # Whatever succeeded is published, even when some countries failed.
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install boto3
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: entry-*
+          path: entries
+      - name: Merge the index
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: python -m happyroads_data.index --entries entries --out out --version "$VERSION"
+      - name: Upload the index
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: python -m happyroads_data.upload --out out --index

@@ -34,8 +34,11 @@ def read_entries(folder):
 
 
 def _fetch_published(url):
+    # Named, because Cloudflare answers 403 to Python's default agent.
+    request = urllib.request.Request(
+        url, headers={'User-Agent': 'HappyRoads place-data builder'})
     try:
-        with urllib.request.urlopen(url, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=60) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         # Nothing published yet is the first run, not a failure.
