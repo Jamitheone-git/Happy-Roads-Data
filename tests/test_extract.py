@@ -37,3 +37,10 @@ def test_an_unclosed_way_is_still_a_place():
 
 def test_untagged_or_unknown_things_are_not_places():
     assert sorted(p.layer for p in _places()) == ['camera', 'fuel', 'fuel', 'parking', 'toll']
+
+
+def test_a_subdivisions_names_are_kept_by_its_code_even_unassembled():
+    # A state whose border cannot be closed in its own file still has its
+    # names on its relation, and a split country's regions take them from it.
+    labels = read_extract(FIXTURE).labels
+    assert labels['XX-W']['name:en'] == 'West'

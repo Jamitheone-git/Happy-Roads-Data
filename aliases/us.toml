@@ -1,0 +1,7 @@
+# The United States is built from its states (geofabrik.toml splits it),
+# none of whose files holds the whole country's border, so its name is
+# given here rather than read from OSM.
+
+[country]
+name = "United States"
+names = { el = "Ηνωμένες Πολιτείες", en = "United States" }

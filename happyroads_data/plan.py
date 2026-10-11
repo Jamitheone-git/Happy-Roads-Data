@@ -31,17 +31,24 @@ def countries(index, settings, only=None):
             continue
 
         if code in split:
+            # Each part comes with the outline Geofabrik cut it with: a
+            # state's own OSM border includes its sea border, which its file
+            # leaves out, so that border cannot be closed and the outline is
+            # what the state's region is drawn from instead.
             prefix = f'{code.upper()}-'
-            extracts = sorted(
-                f['urls']['pbf'] for f in features
-                if any(sub.startswith(prefix) for sub in f.get('iso3166-2', [])))
-        else:
-            extract = _extract_for(code, claims[code], settled)
-            if extract is None:
-                continue
-            extracts = [extract]
+            parts = sorted(
+                ({'id': f['id'], 'name': f['name'], 'code': f['iso3166-2'][0],
+                  'pbf': f['urls']['pbf'],
+                  'poly': f['urls']['pbf'].replace('-latest.osm.pbf', '.poly')}
+                 for f in features
+                 if any(sub.startswith(prefix) for sub in f.get('iso3166-2', []))),
+                key=lambda part: part['id'])
+            result.append({'country': code, 'extracts': [], 'parts': parts})
+            continue
 
-        result.append({'country': code, 'extracts': extracts})
+        extract = _extract_for(code, claims[code], settled)
+        if extract is not None:
+            result.append({'country': code, 'extracts': [extract]})
     return result
 
 

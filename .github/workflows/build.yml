@@ -68,12 +68,9 @@ jobs:
 
       - name: Download extracts
         env:
-          EXTRACTS: ${{ toJSON(matrix.extracts) }}
+          ENTRY: ${{ toJSON(matrix) }}
         run: |
-          mkdir -p extracts
-          echo "$EXTRACTS" | jq -r '.[]' | while read -r url; do
-            curl -fsSL --retry 3 -o "extracts/$(basename "$url")" "$url"
-          done
+          python -m happyroads_data.fetch --entry "$ENTRY" --dir extracts
           du -sh extracts
 
       - name: Build
@@ -81,11 +78,9 @@ jobs:
           COUNTRY: ${{ matrix.country }}
           VERSION: ${{ needs.plan.outputs.version }}
         run: |
-          args=()
-          for f in extracts/*.pbf; do args+=(--extract "$f"); done
           # Four at once: a runner has four cores, and the United States is
           # fifty-three files that took nearly the time limit one by one.
-          python -m happyroads_data.build --country "$COUNTRY" "${args[@]}" --jobs 4 --out out --version "$VERSION"
+          python -m happyroads_data.build --country "$COUNTRY" --fetched extracts/fetched.json --jobs 4 --out out --version "$VERSION"
           rm -rf extracts
 
       - name: Upload the country

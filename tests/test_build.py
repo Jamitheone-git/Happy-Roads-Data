@@ -102,3 +102,54 @@ def test_extracts_read_side_by_side_give_the_same_country(tmp_path):
     assert files
     for path in files:
         assert (tmp_path / 'one' / path).read_bytes() == (tmp_path / 'two' / path).read_bytes(), path
+
+
+def _parts(tmp_path):
+    parts = tmp_path / 'fetched.json'
+    parts.write_text(json.dumps({'parts': [
+        {'id': 'xx/west-side', 'name': 'xx/west-side', 'code': 'XX-W',
+         'pbf': str(FIXTURES / 'two_squares.osm'), 'poly': str(FIXTURES / 'west.poly')},
+        {'id': 'xx/east-side', 'name': 'xx/east-side', 'code': 'XX-E',
+         'pbf': str(FIXTURES / 'east_square.osm'), 'poly': str(FIXTURES / 'east.poly')},
+    ]}), encoding='utf-8')
+    return parts
+
+
+def test_a_split_country_takes_its_regions_from_geofabriks_own_outlines(tmp_path):
+    # A state's OSM border includes its sea border, which its Geofabrik file
+    # leaves out; it cannot be closed, and the state and all its places were
+    # lost. The outline Geofabrik cut the file with is the state, whole.
+    root = tmp_path / 'root'
+    (root / 'aliases').mkdir(parents=True)
+    (root / 'levels.toml').write_text('default = 4\n', encoding='utf-8')
+    main(['--country', 'xx', '--fetched', str(_parts(tmp_path)),
+          '--out', str(tmp_path / 'out'), '--version', '2026-10', '--root', str(root)])
+
+    manifest = json.loads((tmp_path / 'out/v1/xx/manifest.json').read_text(encoding='utf-8'))
+    regions = {r['id']: r for r in manifest['regions'][1:]}
+    assert sorted(regions) == ['xx-east-side', 'xx-west-side']
+    # Geofabrik names a part by its id; the names are OSM's, found by the
+    # part's ISO 3166-2 code on its relation even where the border cannot be
+    # closed.
+    assert regions['xx-west-side']['name'] == 'Δύση'
+    assert regions['xx-west-side']['names'] == {'en': 'West', 'el': 'Δύση'}
+    assert regions['xx-east-side']['name'] == 'Ανατολή'
+    assert regions['xx-west-side']['neighborIds'] == ['xx-east-side']
+
+    out = tmp_path / 'out'
+    # The unnamed station at (5, 5) lies in no outline; it came in the west
+    # file, so it stays with the west, as a place in Geofabrik's margin would.
+    assert [p[2] for p in _layer(out, 'xx-west-side', 'fuel')] == ['West Fuel', None]
+    assert [p[2] for p in _layer(out, 'xx-east-side', 'fuel')] == ['East Fuel']
+    # The camera is in both files and in the east outline: once, in the east.
+    assert len(_layer(out, 'xx-east-side', 'camera')) == 1
+    assert _layer(out, 'xx-west-side', 'camera') == []
+
+
+def test_the_build_says_how_many_places_found_no_region(tmp_path, capsys):
+    # The check that found the United States losing twenty-two states: a
+    # country whose places mostly fall outside its regions is visibly wrong.
+    main(['--country', 'xx', '--extract', str(FIXTURES / 'two_squares.osm'),
+          '--out', str(tmp_path), '--version', '2026-10', '--root', str(FIXTURES)])
+    # Of five places, one (at 5, 5) lies outside both squares.
+    assert 'dropped 1 of 5 places (20%)' in capsys.readouterr().out

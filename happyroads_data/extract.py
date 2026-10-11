@@ -2,6 +2,7 @@
 every place belonging to a layer."""
 
 from dataclasses import dataclass
+from typing import NamedTuple
 
 import osmium
 import shapely.wkb
@@ -26,6 +27,15 @@ class Boundary:
     geometry: object
 
 
+class Extract(NamedTuple):
+    boundaries: list
+    places: list
+    # The tags of every subdivision named by an ISO 3166-2 code, assembled or
+    # not: a state whose border runs out to sea cannot be closed from its own
+    # file, but its names are on its relation all the same.
+    labels: dict
+
+
 # Only objects carrying one of these keys reach Python at all. A country
 # extract is mostly untagged nodes and buildings, and iterating those in Python
 # is what would make a large country take hours.
@@ -33,7 +43,7 @@ _KEYS = ('amenity', 'barrier', 'highway', 'shop', 'boundary')
 
 
 def read_extract(path):
-    boundaries, places = [], []
+    boundaries, places, labels = [], [], {}
     wkb = osmium.geom.WKBFactory()
 
     processor = (osmium.FileProcessor(path)
@@ -57,6 +67,10 @@ def read_extract(path):
             else:
                 south, west, north, east = _box(geometry)
                 _add(places, tags, 'r', (south + north) / 2, (west + east) / 2)
+        elif obj.is_relation():
+            code = tags.get('ISO3166-2')
+            if code and tags.get('boundary') == 'administrative':
+                labels[code] = tags
         elif obj.is_node():
             _add(places, tags, 'n', obj.location.lat, obj.location.lon)
         elif obj.is_way():
@@ -67,7 +81,7 @@ def read_extract(path):
                 _add(places, tags, 'w', (min(lats) + max(lats)) / 2,
                      (min(lons) + max(lons)) / 2)
 
-    return boundaries, places
+    return Extract(boundaries, places, labels)
 
 
 def _add(places, tags, element, lat, lon):

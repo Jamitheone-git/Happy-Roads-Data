@@ -25,11 +25,17 @@ def test_a_country_found_only_in_a_shared_extract_is_built_from_that():
     assert _by_country()['ps'] == shared
 
 
-def test_a_split_country_is_built_from_its_subdivisions_files():
-    assert _by_country()['us'] == [
-        'https://download.geofabrik.de/north-america/us/alabama-latest.osm.pbf',
-        'https://download.geofabrik.de/north-america/us/alaska-latest.osm.pbf',
-    ]
+def test_a_split_country_is_built_from_its_subdivisions_each_with_its_outline():
+    us = next(c for c in countries(INDEX, SETTINGS) if c['country'] == 'us')
+    assert us['extracts'] == []
+    assert us['parts'][0] == {
+        'id': 'us/alabama',
+        'name': 'Alabama',
+        'code': 'US-AL',
+        'pbf': 'https://download.geofabrik.de/north-america/us/alabama-latest.osm.pbf',
+        'poly': 'https://download.geofabrik.de/north-america/us/alabama.poly',
+    }
+    assert [p['id'] for p in us['parts']] == ['us/alabama', 'us/alaska']
 
 
 def test_a_code_several_extracts_claim_takes_the_one_settled_in_the_settings():

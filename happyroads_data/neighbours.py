@@ -47,3 +47,24 @@ def neighbours(regions, min_km=1.0):
                 result[other.id].add(region.id)
 
     return {rid: sorted(ids) for rid, ids in result.items()}
+
+
+def overlap_neighbours(regions):
+    """Neighbours among outlines that overlap rather than meet: Geofabrik cuts
+    each part with a margin, so two states' outlines share an area, not a
+    line. A corner shared by four (as Arizona, Utah, Colorado and New Mexico
+    do) can make a neighbour of a diagonal one; that is only a colour hint in
+    the picker."""
+    result = {region.id: set() for region in regions}
+    tree = STRtree([region.geometry for region in regions])
+
+    for i, region in enumerate(regions):
+        for j in tree.query(region.geometry, predicate='intersects'):
+            j = int(j)
+            if j <= i:
+                continue
+            if region.geometry.intersection(regions[j].geometry).area > 0:
+                result[region.id].add(regions[j].id)
+                result[regions[j].id].add(region.id)
+
+    return {rid: sorted(ids) for rid, ids in result.items()}

@@ -12,7 +12,7 @@
  <way id="103"><nd ref="2"/><nd ref="5"/><nd ref="6"/><nd ref="3"/></way>
  <way id="104"><nd ref="7"/><nd ref="8"/><nd ref="9"/><nd ref="19"/><nd ref="7"/></way>
  <relation id="501"><member type="way" ref="101" role="outer"/><member type="way" ref="103" role="outer"/>
-  <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="name" v="Ανατολή"/></relation>
+  <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="ISO3166-2" v="XX-E"/><tag k="name" v="Ανατολή"/></relation>
  <relation id="900"><member type="way" ref="104" role="outer"/>
   <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="2"/><tag k="ISO3166-1" v="XX"/><tag k="name" v="Χώρα"/><tag k="name:en" v="Country"/></relation>
 </osm>

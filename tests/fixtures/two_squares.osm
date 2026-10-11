@@ -19,7 +19,7 @@
  <way id="110"><nd ref="20"/><nd ref="21"/><nd ref="22"/><nd ref="20"/><tag k="amenity" v="parking"/><tag k="fee" v="yes"/></way>
  <way id="111"><nd ref="30"/><nd ref="31"/><tag k="barrier" v="toll_booth"/></way>
  <relation id="500"><member type="way" ref="100" role="outer"/><member type="way" ref="101" role="outer"/><member type="way" ref="102" role="outer"/>
-  <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="name" v="Δύση"/><tag k="name:en" v="West"/></relation>
+  <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="ISO3166-2" v="XX-W"/><tag k="name" v="Δύση"/><tag k="name:el" v="Δύση"/><tag k="name:en" v="West"/></relation>
  <relation id="501"><member type="way" ref="101" role="outer"/><member type="way" ref="103" role="outer"/>
   <tag k="type" v="boundary"/><tag k="boundary" v="administrative"/><tag k="admin_level" v="6"/><tag k="name" v="Ανατολή"/></relation>
  <relation id="900"><member type="way" ref="104" role="outer"/>
